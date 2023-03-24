@@ -1,8 +1,10 @@
 import random
 
 
-class game_stater:
+class Game:
     def __init__(self):
+        self.max_moves_with_no_action = 50
+        self.num_of_moves_with_no_action = 0
         self.board = [
             ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
             ["bp", "bp", "bp", "bp", "bp", "bp", "bp", "bp"],
@@ -19,7 +21,7 @@ class game_stater:
         self.white_king_location = (7, 4)
         self.black_king_location = (1, 4)
         self.check_mate = False
-        self.stal_mate = False
+        self.stale_mate = False
         self.castling = Castling(True, True, True, True)
         self.castling_log = [Castling(self.castling.wks, self.castling.wqs,
                                       self.castling.bks, self.castling.bqs)]
@@ -75,7 +77,7 @@ class game_stater:
             self.castling.bks = self.castling_log[-1].bks
             self.castling.bqs = self.castling_log[-1].bqs
             self.check_mate = False
-            self.stal_mate = False
+            self.stale_mate = False
 
     def update_castling(self, move):
         if move.piece_moved == "wK":
@@ -123,10 +125,7 @@ class game_stater:
             if self.in_check():
                 self.check_mate = True
             else:
-                self.stal_mate = True
-        else:
-            self.stal_mate = False
-            self.check_mate = False
+                self.stale_mate = True
         self.castling = temp_castle_moves
         return moves
 
@@ -264,23 +263,33 @@ class game_stater:
         if (self.white_move and self.castling.wks) or (not self.white_move and self.castling.bks):
             self.get_king_side(r, c, moves)
         if (self.white_move and self.castling.wqs) or (not self.white_move and self.castling.bqs):
-            self.get_qeen_side(r, c, moves)
+            self.get_queen_side(r, c, moves)
 
     def get_king_side(self, r, c, moves):
         if self.board[r][c + 1] == "--" and self.board[r][c + 2] == "--":
             if not self.square_under_attack(r, c + 1) and not self.square_under_attack(r, c + 2):
                 moves.append(Move((r, c), (r, c + 2), self.board, True))
 
-    def get_qeen_side(self, r, c, moves):
+    def get_queen_side(self, r, c, moves):
         if self.board[r][c - 1] == "--" and self.board[r][c - 2] == "--" and self.board[r][c - 3] == "--":
             if not self.square_under_attack(r, c - 1) and not self.square_under_attack(r, c - 2):
                 moves.append(Move((r, c), (r, c - 2), self.board, True))
 
     def random_move(self):
-        if len(game_stater.king_is_not_in_check_moves(self)) == 0:
+        if len(self.king_is_not_in_check_moves()) == 0:
             return 0
-        moves = game_stater.king_is_not_in_check_moves(self)
+        moves = self.king_is_not_in_check_moves()
         return random.choice(moves)
+
+    def update_moves_with_no_action(self):
+        move = self.move_log[-1]
+        if move.piece_captured == "--":
+            self.num_of_moves_with_no_action += 0.5
+        else:
+            self.num_of_moves_with_no_action = 0
+
+        if self.num_of_moves_with_no_action == self.max_moves_with_no_action:
+            self.stale_mate = True
 
 
 class Move:
